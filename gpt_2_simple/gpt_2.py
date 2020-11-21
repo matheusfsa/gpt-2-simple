@@ -213,7 +213,7 @@ def finetune(sess,
     elif optimizer == 'sgd':
         opt = tf.compat.v1.train.GradientDescentOptimizer(learning_rate=learning_rate)
 
-    if args.accumulate_gradients > 1:
+    if accumulate_gradients > 1:
         opt = AccumulatingOptimizer(
             opt=opt,
             var_list=train_vars)
