@@ -213,24 +213,19 @@ def finetune(sess,
     elif optimizer == 'sgd':
         opt = tf.compat.v1.train.GradientDescentOptimizer(learning_rate=learning_rate)
 
-    if accumulate_gradients > 1:
-        if use_memory_saving_gradients:
-            exit("Memory saving gradients are not implemented for gradient accumulation yet.")
+    if args.accumulate_gradients > 1:
         opt = AccumulatingOptimizer(
             opt=opt,
             var_list=train_vars)
         opt_reset = opt.reset()
         opt_compute = opt.compute_gradients(loss)
         opt_apply = opt.apply_gradients()
-        summary_loss = tf.compat.v1.summary.scalar('loss', opt_apply)
+        summary_loss = tf.summary.scalar('loss', opt_apply)
     else:
-        if use_memory_saving_gradients:
-            opt_grads = memory_saving_gradients.gradients(loss, train_vars)
-        else:
-            opt_grads = tf.gradients(ys=loss, xs=train_vars)
-        opt_grads = list(zip(opt_grads, train_vars))
-        opt_apply = opt.apply_gradients(opt_grads)
-        summary_loss = tf.compat.v1.summary.scalar('loss', loss)
+        opt_apply = tf.train.AdamOptimizer(
+            learning_rate=args.learning_rate).minimize(
+                loss, var_list=train_vars)
+        summary_loss = tf.summary.scalar('loss', loss)
 
     summary_log = tf.compat.v1.summary.FileWriter(checkpoint_path)
 
