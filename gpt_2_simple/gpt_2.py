@@ -94,7 +94,7 @@ def start_tf_sess(threads=-1, server=None):
     """
     Returns a tf.Session w/ config
     """
-    config = tf.compat.v1.ConfigProto()
+    config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     config.graph_options.rewrite_options.layout_optimizer = rewriter_config_pb2.RewriterConfig.OFF
     if threads > 0:
@@ -102,9 +102,9 @@ def start_tf_sess(threads=-1, server=None):
         config.inter_op_parallelism_threads = threads
 
     if server is not None:
-        return tf.compat.v1.Session(target=server.target, config=config)
+        return tf.Session(target=server.target, config=config)
     
-    return tf.compat.v1.Session(config=config)
+    return tf.Session(config=config)
 
 
 def reset_session(sess, threads=-1, server=None):
@@ -112,7 +112,7 @@ def reset_session(sess, threads=-1, server=None):
     or load another model.
     """
 
-    tf.compat.v1.reset_default_graph()
+    tf.reset_default_graph()
     sess.close()
     sess = start_tf_sess(threads, server)
     return sess
@@ -186,7 +186,7 @@ def finetune(sess,
         only_train_transformer_layers = True
         accumulate_gradients = 1
 
-    context = tf.compat.v1.placeholder(tf.int32, [batch_size, None])
+    context = tf.placeholder(tf.int32, [batch_size, None])
     gpus = []
 
     if multi_gpu:
@@ -205,13 +205,13 @@ def finetune(sess,
         temperature=1.0,
         top_k=40)
 
-    all_vars = [v for v in tf.compat.v1.trainable_variables() if 'model' in v.name]
+    all_vars = [v for v in tf.trainable_variables() if 'model' in v.name]
     train_vars = [v for v in all_vars if '/h' in v.name] if only_train_transformer_layers else all_vars
 
     if optimizer == 'adam':
-        opt = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
+        opt = tf.train.AdamOptimizer(learning_rate=learning_rate)
     elif optimizer == 'sgd':
-        opt = tf.compat.v1.train.GradientDescentOptimizer(learning_rate=learning_rate)
+        opt = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
 
     if accumulate_gradients > 1:
         opt = AccumulatingOptimizer(
@@ -223,16 +223,16 @@ def finetune(sess,
         summary_loss = tf.summary.scalar('loss', opt_apply)
     else:
         opt_apply = tf.train.AdamOptimizer(
-            learning_rate=args.learning_rate).minimize(
+            learning_rate=learning_rate).minimize(
                 loss, var_list=train_vars)
         summary_loss = tf.summary.scalar('loss', loss)
 
-    summary_log = tf.compat.v1.summary.FileWriter(checkpoint_path)
+    summary_log = tf.summary.FileWriter(checkpoint_path)
 
-    saver = tf.compat.v1.train.Saver(
+    saver = tf.train.Saver(
         var_list=all_vars,
         max_to_keep=max_checkpoints)
-    sess.run(tf.compat.v1.global_variables_initializer())
+    sess.run(tf.global_variables_initializer())
 
     if restore_from == 'latest':
         ckpt = tf.train.latest_checkpoint(checkpoint_path)
@@ -373,7 +373,7 @@ def load_gpt2(sess,
     with open(os.path.join(checkpoint_path, 'hparams.json')) as f:
         hparams.override_from_dict(json.load(f))
 
-    context = tf.compat.v1.placeholder(tf.int32, [1, None])
+    context = tf.placeholder(tf.int32, [1, None])
 
     gpus = []
     if multi_gpu:
@@ -386,8 +386,8 @@ def load_gpt2(sess,
     else:
         ckpt = os.path.join(checkpoint_path,checkpoint)
 
-    saver = tf.compat.v1.train.Saver(allow_empty=True)
-    sess.run(tf.compat.v1.global_variables_initializer())
+    saver = tf.train.Saver(allow_empty=True)
+    sess.run(tf.global_variables_initializer())
 
     if model_name:
         print('Loading pretrained model', ckpt)
@@ -441,11 +441,11 @@ def generate(sess,
         hparams.override_from_dict(json.load(f))
 
     if prefix:
-        context = tf.compat.v1.placeholder(tf.int32, [batch_size, None])
+        context = tf.placeholder(tf.int32, [batch_size, None])
         context_tokens = enc.encode(prefix)
 
     np.random.seed(seed)
-    tf.compat.v1.set_random_seed(seed)
+    tf.set_random_seed(seed)
 
     output = sample.sample_sequence(
         hparams=hparams,
